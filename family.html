@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Growth Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase SDK v9+ modular -->
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -576,7 +575,6 @@
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
     <div id="loginScreen" class="login-screen">
         <div class="login-box">
             <h1>🌟 Family Growth Tracker</h1>
@@ -587,12 +585,9 @@
         </div>
     </div>
 
-    <!-- Save Indicator -->
     <div id="saveIndicator" class="save-indicator">✓ Saved</div>
 
-    <!-- Main App -->
     <div id="mainApp" class="main-app">
-        <!-- Header -->
         <div class="header">
             <h1>🌟 <span data-lang="title">Family Growth Tracker</span></h1>
             <div class="language-toggle">
@@ -602,7 +597,6 @@
             </div>
         </div>
 
-        <!-- Child Selector -->
         <div class="child-selector">
             <button class="child-btn philip" onclick="selectChild('philip')">
                 Philip
@@ -626,12 +620,10 @@
             </button>
         </div>
 
-        <!-- Motivational Message -->
         <div class="motivational-message" id="motivationalMessage">
             <span data-lang="welcome">Every choice is a chance to grow! 🌱</span>
         </div>
 
-        <!-- Level Display -->
         <div class="level-display">
             <h3><span data-lang="level">Level</span> <span id="currentLevel">1</span></h3>
             <p><span data-lang="xpToNext">XP to next level</span>: <span id="currentXP">0</span>/<span id="xpNeeded">10</span></p>
@@ -642,9 +634,7 @@
             </div>
         </div>
 
-        <!-- Tracking Container -->
         <div class="tracking-container">
-            <!-- Positive Behaviors -->
             <div class="behavior-panel positive">
                 <h2>
                     <span>✨ <span data-lang="positiveChoices">Positive Choices</span></span>
@@ -657,7 +647,6 @@
                 </div>
             </div>
 
-            <!-- Negative Behaviors -->
             <div class="behavior-panel negative">
                 <h2>
                     <span>⚠️ <span data-lang="challengingChoices">Challenging Choices</span></span>
@@ -671,13 +660,11 @@
             </div>
         </div>
 
-        <!-- Today's Log -->
         <div class="today-log">
             <h2>📝 <span data-lang="todayLog">Today's Choices</span></h2>
             <div class="log-entries" id="logEntries"></div>
         </div>
 
-        <!-- Rewards/Consequences -->
         <div class="rewards-section">
             <h2>🎁 <span data-lang="rewardsConsequences">Rewards & Consequences</span></h2>
             <div class="reward-input">
@@ -687,7 +674,6 @@
             <div class="reward-list" id="rewardList"></div>
         </div>
 
-        <!-- Comments -->
         <div class="comments-section">
             <h2>💭 <span data-lang="dailyNotes">Daily Notes</span></h2>
             
@@ -702,7 +688,6 @@
             <textarea id="tagesgruppeComments" placeholder="Notes from Tagesgruppe..." data-lang-placeholder="tagesgruppeNotesPlaceholder" oninput="saveComments()"></textarea>
         </div>
 
-        <!-- Progress Charts -->
         <div class="progress-section">
             <h2>📊 <span data-lang="progressCharts">Progress Over Time</span></h2>
             <div class="chart-container">
@@ -710,7 +695,6 @@
             </div>
         </div>
 
-        <!-- Historical Data -->
         <div class="historical-data">
             <h2>📅 <span data-lang="historicalData">Historical Data</span></h2>
             <div class="date-selector">
@@ -1537,17 +1521,9 @@
                 try {
                     const loaded = JSON.parse(savedData);
                     
-                    // Merge loaded data with default structure
-                    appData.children = loaded.children || appData.children;
-                    
-                    // Ensure customBehaviors structure exists
-                    if (!loaded.customBehaviors) {
-                        loaded.customBehaviors = {
-                            positive: { en: [], de: [] },
-                            negative: { en: [], de: [] }
-                        };
-                    }
-                    appData.customBehaviors = loaded.customBehaviors;
+                    // Merge loaded data with defaults to prevent overwrites
+                    appData.children = Object.assign({}, appData.children, loaded.children);
+                    appData.customBehaviors = Object.assign({}, appData.customBehaviors, loaded.customBehaviors);
                     
                     // Migrate old data structure if needed
                     Object.keys(appData.children).forEach(childId => {
@@ -1585,17 +1561,9 @@
                 if (snapshot.exists()) {
                     const loaded = snapshot.val();
                     
-                    // Merge with default structure
-                    appData.children = loaded.children || appData.children;
-                    
-                    // Ensure customBehaviors exists
-                    if (!loaded.customBehaviors) {
-                        loaded.customBehaviors = {
-                            positive: { en: [], de: [] },
-                            negative: { en: [], de: [] }
-                        };
-                    }
-                    appData.customBehaviors = loaded.customBehaviors;
+                    // Merge loaded data with defaults to prevent overwrites
+                    appData.children = Object.assign({}, appData.children, loaded.children);
+                    appData.customBehaviors = Object.assign({}, appData.customBehaviors, loaded.customBehaviors);
                     
                     // Migrate old data structure if needed
                     Object.keys(appData.children).forEach(childId => {
@@ -1623,14 +1591,9 @@
                 if (snapshot.exists()) {
                     const loaded = snapshot.val();
                     
-                    appData.children = loaded.children || appData.children;
-                    if (!loaded.customBehaviors) {
-                        loaded.customBehaviors = {
-                            positive: { en: [], de: [] },
-                            negative: { en: [], de: [] }
-                        };
-                    }
-                    appData.customBehaviors = loaded.customBehaviors;
+                    // Merge loaded data with defaults to prevent overwrites
+                    appData.children = Object.assign({}, appData.children, loaded.children);
+                    appData.customBehaviors = Object.assign({}, appData.customBehaviors, loaded.customBehaviors);
                     
                     updateLevelBadges();
                     renderChildData();
