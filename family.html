@@ -5,8 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Family Growth Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDK v9+ modular -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqgDmGozI6p0Tcbq3UHxqoDwzcQkC5Td8",
+            authDomain: "family-b24ae.firebaseapp.com",
+            databaseURL: "https://family-b24ae-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "family-b24ae",
+            storageBucket: "family-b24ae.firebasestorage.app",
+            messagingSenderId: "189362354313",
+            appId: "1:189362354313:web:769e9fe823e5a6afe6ae58"
+        };
+        
+        // Initialize Firebase
+        let app, database;
+        try {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+            
+            // Make database and functions globally available
+            window.firebaseDb = database;
+            window.firebaseRef = ref;
+            window.firebaseSet = set;
+            window.firebaseOnValue = onValue;
+            window.firebaseGet = get;
+            window.firebaseInitialized = true;
+            
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            window.firebaseInitialized = false;
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -523,6 +558,21 @@
         .save-indicator.show {
             opacity: 1;
         }
+
+        @keyframes highlight {
+            0% {
+                background-color: #ffd700;
+                transform: scale(1.02);
+            }
+            50% {
+                background-color: #ffd700;
+                transform: scale(1.02);
+            }
+            100% {
+                background-color: inherit;
+                transform: scale(1);
+            }
+        }
     </style>
 </head>
 <body>
@@ -640,7 +690,16 @@
         <!-- Comments -->
         <div class="comments-section">
             <h2>💭 <span data-lang="dailyNotes">Daily Notes</span></h2>
-            <textarea id="dailyComments" placeholder="Notes about today..." data-lang-placeholder="notesPlaceholder" oninput="saveComments()"></textarea>
+            
+            <h3 style="color: #667eea; margin-top: 15px; margin-bottom: 10px;">
+                👨‍👩‍👧‍👦 <span data-lang="parentComments">Parent Comments</span>
+            </h3>
+            <textarea id="parentComments" placeholder="Notes from parents..." data-lang-placeholder="parentNotesPlaceholder" oninput="saveComments()"></textarea>
+            
+            <h3 style="color: #667eea; margin-top: 20px; margin-bottom: 10px;">
+                🏫 <span data-lang="tagesgruppeComments">Tagesgruppe Comments</span>
+            </h3>
+            <textarea id="tagesgruppeComments" placeholder="Notes from Tagesgruppe..." data-lang-placeholder="tagesgruppeNotesPlaceholder" oninput="saveComments()"></textarea>
         </div>
 
         <!-- Progress Charts -->
@@ -665,26 +724,90 @@
     </div>
 
     <script>
-        // Firebase Configuration - Pre-configured for your project
-        const firebaseConfig = {
-            apiKey: "AIzaSyDqgDmGozI6p0Tcbq3UHxqoDwzcQkC5Td8",
-            authDomain: "family-b24ae.firebaseapp.com",
-            databaseURL: "https://family-b24ae-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "family-b24ae",
-            storageBucket: "family-b24ae.firebasestorage.app",
-            messagingSenderId: "189362354313",
-            appId: "1:189362354313:web:769e9fe823e5a6afe6ae58"
+        // Get Firebase database from global scope (initialized in module above)
+        let database = null;
+        
+        // Wait for Firebase to initialize
+        function checkFirebase() {
+            if (window.firebaseInitialized && window.firebaseDb) {
+                database = window.firebaseDb;
+                console.log('Firebase connected from global scope');
+            } else {
+                console.log('Firebase not available, using local storage only');
+            }
+        }
+        
+        // Check Firebase on load
+        window.addEventListener('load', () => {
+            setTimeout(checkFirebase, 100);
+        });
+
+        // Create behavior mapping for translations
+        const behaviorTranslations = {
+            // Positive behaviors
+            "Helped with chores": "Bei Hausarbeit geholfen",
+            "Did homework without being asked": "Hausaufgaben ohne Aufforderung gemacht",
+            "Shared with sibling": "Mit Geschwistern geteilt",
+            "Used kind words": "Freundliche Worte benutzt",
+            "Followed instructions": "Anweisungen befolgt",
+            "Helped someone": "Jemandem geholfen",
+            "Showed patience": "Geduld gezeigt",
+            "Cleaned room": "Zimmer aufgeräumt",
+            "Practiced instrument": "Instrument geübt",
+            "Read a book": "Buch gelesen",
+            "Exercised": "Sport gemacht",
+            "Ate healthy food": "Gesund gegessen",
+            "Showed empathy": "Empathie gezeigt",
+            "Solved problem peacefully": "Problem friedlich gelöst",
+            "Tried something new": "Etwas Neues probiert",
+            "Was respectful": "Respektvoll gewesen",
+            "Brushed teeth without reminder": "Zähne ohne Erinnerung geputzt",
+            "Wore retainer": "Retainer getragen",
+            "Completed assignment": "Aufgabe erledigt",
+            "Showed gratitude": "Dankbarkeit gezeigt",
+            "Made good decision": "Gute Entscheidung getroffen",
+            
+            // Negative behaviors
+            "Flipped someone off": "Stinkefinger gezeigt",
+            "Fighting with sibling": "Mit Geschwistern gestritten",
+            "Property damage": "Sachbeschädigung",
+            "Temper tantrum": "Wutanfall",
+            "Screaming": "Geschrien",
+            "Threatened to run away": "Gedroht wegzulaufen",
+            "Verbal threat": "Verbale Drohung",
+            "Stealing": "Stehlen",
+            "Refused to do chores": "Hausarbeit verweigert",
+            "Not wearing retainer": "Retainer nicht getragen",
+            "Not doing homework": "Hausaufgaben nicht gemacht",
+            "Lying": "Gelogen",
+            "Disrespectful language": "Respektlose Sprache",
+            "Hitting/kicking": "Schlagen/Treten",
+            "Breaking rules": "Regeln gebrochen",
+            "Ignoring instructions": "Anweisungen ignoriert",
+            "Throwing things": "Dinge geworfen",
+            "Slamming doors": "Türen zugeknallt",
+            "Name calling": "Beschimpfungen",
+            "Interrupting constantly": "Ständig unterbrochen",
+            "Refusing to cooperate": "Zusammenarbeit verweigert",
+            "Back talking": "Widersprochen",
+            "Leaving without permission": "Ohne Erlaubnis weggegangen",
+            "Damaging belongings": "Sachen beschädigt"
         };
 
-        // Initialize Firebase automatically
-        let database = null;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            console.log('Firebase initialized successfully');
-        } catch (error) {
-            console.error('Firebase initialization error:', error);
-            console.log('Falling back to local storage only');
+        // Function to get translated behavior
+        function getTranslatedBehavior(behavior, targetLang) {
+            if (targetLang === 'en') {
+                // If switching to English, find the English version
+                for (let [enText, deText] of Object.entries(behaviorTranslations)) {
+                    if (deText === behavior) {
+                        return enText;
+                    }
+                }
+                return behavior; // Already in English or custom behavior
+            } else {
+                // If switching to German, translate
+                return behaviorTranslations[behavior] || behavior;
+            }
         }
 
         // Language translations
@@ -710,6 +833,10 @@
                 addNegative: "Add new challenging behavior...",
                 addReward: "Add reward or consequence...",
                 notesPlaceholder: "Notes about today...",
+                parentComments: "Parent Comments",
+                tagesgruppeComments: "Tagesgruppe Comments",
+                parentNotesPlaceholder: "Notes from parents...",
+                tagesgruppeNotesPlaceholder: "Notes from Tagesgruppe...",
                 motivationalMessages: [
                     "Every choice is a chance to grow! 🌱",
                     "You're making great progress! Keep it up! ⭐",
@@ -741,6 +868,10 @@
                 addNegative: "Neues herausforderndes Verhalten hinzufügen...",
                 addReward: "Belohnung oder Konsequenz hinzufügen...",
                 notesPlaceholder: "Notizen über heute...",
+                parentComments: "Eltern-Kommentare",
+                tagesgruppeComments: "Tagesgruppe-Kommentare",
+                parentNotesPlaceholder: "Notizen von Eltern...",
+                tagesgruppeNotesPlaceholder: "Notizen von der Tagesgruppe...",
                 motivationalMessages: [
                     "Jede Wahl ist eine Chance zu wachsen! 🌱",
                     "Du machst tolle Fortschritte! Weiter so! ⭐",
@@ -806,11 +937,11 @@
         let chart = null;
         let appData = {
             children: {
-                philip: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], comments: {} },
-                agnes: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], comments: {} },
-                edmund: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], comments: {} },
-                leo: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], comments: {} },
-                zoe: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], comments: {} }
+                philip: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], parentComments: {}, tagesgruppeComments: {} },
+                agnes: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], parentComments: {}, tagesgruppeComments: {} },
+                edmund: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], parentComments: {}, tagesgruppeComments: {} },
+                leo: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], parentComments: {}, tagesgruppeComments: {} },
+                zoe: { xp: 0, level: 1, behaviors: {}, logs: {}, rewards: [], parentComments: {}, tagesgruppeComments: {} }
             },
             customBehaviors: {
                 positive: { en: [], de: [] },
@@ -825,9 +956,13 @@
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
                 loadData();
+                
+                // Check if Firebase is ready and load data
+                checkFirebase();
                 if (database) {
                     loadDataFromFirebase();
                 }
+                
                 initializeApp();
             } else {
                 alert('Incorrect password');
@@ -887,36 +1022,50 @@
             const positiveBehaviors = [...defaultBehaviors.positive[currentLanguage], ...appData.customBehaviors.positive[currentLanguage]];
             const negativeBehaviors = [...defaultBehaviors.negative[currentLanguage], ...appData.customBehaviors.negative[currentLanguage]];
 
-            // Sort by frequency
+            // Sort by frequency - store behaviors in English, display in current language
             const sortedPositive = positiveBehaviors.sort((a, b) => {
-                const freqA = child.behaviors[a] || 0;
-                const freqB = child.behaviors[b] || 0;
+                // Convert displayed language back to English for frequency lookup
+                const aEn = currentLanguage === 'de' ? getTranslatedBehavior(a, 'en') : a;
+                const bEn = currentLanguage === 'de' ? getTranslatedBehavior(b, 'en') : b;
+                const freqA = child.behaviors[aEn] || 0;
+                const freqB = child.behaviors[bEn] || 0;
                 return freqB - freqA;
             });
 
             const sortedNegative = negativeBehaviors.sort((a, b) => {
-                const freqA = child.behaviors[a] || 0;
-                const freqB = child.behaviors[b] || 0;
+                const aEn = currentLanguage === 'de' ? getTranslatedBehavior(a, 'en') : a;
+                const bEn = currentLanguage === 'de' ? getTranslatedBehavior(b, 'en') : b;
+                const freqA = child.behaviors[aEn] || 0;
+                const freqB = child.behaviors[bEn] || 0;
                 return freqB - freqA;
             });
 
             // Render positive behaviors
             const positiveContainer = document.getElementById('positiveBehaviors');
-            positiveContainer.innerHTML = sortedPositive.map(behavior => {
-                const frequency = child.behaviors[behavior] || 0;
-                return `<div class="behavior-item positive-item" onclick="logBehavior('${behavior}', 'positive')">
-                    ${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}
-                </div>`;
-            }).join('');
+            positiveContainer.innerHTML = '';
+            sortedPositive.forEach(behavior => {
+                // Store in English but display in current language
+                const enBehavior = currentLanguage === 'de' ? getTranslatedBehavior(behavior, 'en') : behavior;
+                const frequency = child.behaviors[enBehavior] || 0;
+                const div = document.createElement('div');
+                div.className = 'behavior-item positive-item';
+                div.innerHTML = `${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}`;
+                div.addEventListener('click', () => logBehavior(enBehavior, 'positive'));
+                positiveContainer.appendChild(div);
+            });
 
             // Render negative behaviors
             const negativeContainer = document.getElementById('negativeBehaviors');
-            negativeContainer.innerHTML = sortedNegative.map(behavior => {
-                const frequency = child.behaviors[behavior] || 0;
-                return `<div class="behavior-item negative-item" onclick="logBehavior('${behavior}', 'negative')">
-                    ${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}
-                </div>`;
-            }).join('');
+            negativeContainer.innerHTML = '';
+            sortedNegative.forEach(behavior => {
+                const enBehavior = currentLanguage === 'de' ? getTranslatedBehavior(behavior, 'en') : behavior;
+                const frequency = child.behaviors[enBehavior] || 0;
+                const div = document.createElement('div');
+                div.className = 'behavior-item negative-item';
+                div.innerHTML = `${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}`;
+                div.addEventListener('click', () => logBehavior(enBehavior, 'negative'));
+                negativeContainer.appendChild(div);
+            });
         }
 
         function logBehavior(behavior, type) {
@@ -933,7 +1082,7 @@
                 child.logs[currentDate] = [];
             }
             
-            const timestamp = new Date().toLocaleTimeString();
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             child.logs[currentDate].push({
                 behavior: behavior,
                 type: type,
@@ -946,8 +1095,32 @@
                 checkLevelUp();
             }
 
+            // Immediate visual updates
+            updateTodayLog();
+            updateCounts();
+            updateLevelDisplay();
+            renderBehaviors();
+            
+            // Save data
             saveData();
-            renderChildData();
+            
+            // Visual feedback with specific message
+            const message = type === 'positive' 
+                ? '✓ Added: ' + behavior 
+                : '✓ Logged: ' + behavior;
+            showSaveIndicator(message);
+            
+            // Highlight the new entry
+            setTimeout(() => {
+                const logEntries = document.getElementById('logEntries');
+                const firstEntry = logEntries.querySelector('.log-entry');
+                if (firstEntry) {
+                    firstEntry.style.animation = 'highlight 1s ease';
+                    setTimeout(() => {
+                        firstEntry.style.animation = '';
+                    }, 1000);
+                }
+            }, 50);
         }
 
         function checkLevelUp() {
@@ -1001,18 +1174,25 @@
             const child = appData.children[currentChild];
             const todayLog = child.logs[currentDate] || [];
             
+            console.log('Updating today log for', currentChild, 'on', currentDate);
+            console.log('Log entries:', todayLog.length);
+            
             const logContainer = document.getElementById('logEntries');
             if (todayLog.length === 0) {
-                logContainer.innerHTML = '<p style="color: #999; text-align: center;">No entries yet today</p>';
+                logContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No entries yet today - start tracking choices!</p>';
                 return;
             }
 
-            logContainer.innerHTML = todayLog.map((entry, index) => {
+            // Display in reverse order (newest first)
+            const reversedLog = [...todayLog].reverse();
+            logContainer.innerHTML = reversedLog.map((entry, index) => {
+                const actualIndex = todayLog.length - 1 - index;
+                const emoji = entry.type === 'positive' ? '✨' : '⚠️';
                 return `<div class="log-entry ${entry.type}">
-                    <span>${entry.timestamp} - ${entry.behavior}</span>
-                    <button class="delete-btn" onclick="deleteLogEntry(${index})">×</button>
+                    <span><strong>${entry.timestamp}</strong> ${emoji} ${entry.behavior}</span>
+                    <button class="delete-btn" onclick="deleteLogEntry(${actualIndex})" title="Remove this entry">×</button>
                 </div>`;
-            }).reverse().join('');
+            }).join('');
         }
 
         function deleteLogEntry(index) {
@@ -1100,10 +1280,14 @@
 
         function saveComments() {
             const child = appData.children[currentChild];
-            const comments = document.getElementById('dailyComments').value;
+            const parentComments = document.getElementById('parentComments').value;
+            const tagesgruppeComments = document.getElementById('tagesgruppeComments').value;
             
-            if (!child.comments) child.comments = {};
-            child.comments[currentDate] = comments;
+            if (!child.parentComments) child.parentComments = {};
+            if (!child.tagesgruppeComments) child.tagesgruppeComments = {};
+            
+            child.parentComments[currentDate] = parentComments;
+            child.tagesgruppeComments[currentDate] = tagesgruppeComments;
             
             saveData();
             showSaveIndicator();
@@ -1111,16 +1295,20 @@
 
         function loadComments() {
             const child = appData.children[currentChild];
-            const comments = child.comments ? child.comments[currentDate] || '' : '';
-            document.getElementById('dailyComments').value = comments;
+            const parentComments = child.parentComments ? child.parentComments[currentDate] || '' : '';
+            const tagesgruppeComments = child.tagesgruppeComments ? child.tagesgruppeComments[currentDate] || '' : '';
+            
+            document.getElementById('parentComments').value = parentComments;
+            document.getElementById('tagesgruppeComments').value = tagesgruppeComments;
         }
 
-        function showSaveIndicator() {
+        function showSaveIndicator(message = '✓ Saved') {
             const indicator = document.getElementById('saveIndicator');
+            indicator.textContent = message;
             indicator.classList.add('show');
             setTimeout(() => {
                 indicator.classList.remove('show');
-            }, 2000);
+            }, 2500);
         }
 
         function updateChart() {
@@ -1221,8 +1409,11 @@
             localStorage.setItem('behaviorTrackerData', JSON.stringify(appData));
             
             // Save to Firebase if configured
-            if (database) {
-                database.ref('behaviorTracker').set(appData);
+            if (database && window.firebaseSet && window.firebaseRef) {
+                const dbRef = window.firebaseRef(database, 'behaviorTracker');
+                window.firebaseSet(dbRef, appData).catch(error => {
+                    console.error('Firebase save error:', error);
+                });
             }
 
             showSaveIndicator();
@@ -1234,6 +1425,17 @@
             if (savedData) {
                 try {
                     appData = JSON.parse(savedData);
+                    // Migrate old data structure if needed
+                    Object.keys(appData.children).forEach(childId => {
+                        const child = appData.children[childId];
+                        if (!child.parentComments) child.parentComments = {};
+                        if (!child.tagesgruppeComments) child.tagesgruppeComments = {};
+                        // Migrate old comments to parentComments if they exist
+                        if (child.comments) {
+                            child.parentComments = child.comments;
+                            delete child.comments;
+                        }
+                    });
                     updateLevelBadges();
                 } catch (e) {
                     console.error('Error loading saved data:', e);
@@ -1242,23 +1444,39 @@
         }
 
         function loadDataFromFirebase() {
-            if (!database) return;
+            if (!database || !window.firebaseGet || !window.firebaseRef || !window.firebaseOnValue) {
+                console.log('Firebase not fully initialized');
+                return;
+            }
             
-            database.ref('behaviorTracker').once('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    appData = data;
+            const dbRef = window.firebaseRef(database, 'behaviorTracker');
+            
+            // Load initial data
+            window.firebaseGet(dbRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    appData = snapshot.val();
+                    // Migrate old data structure if needed
+                    Object.keys(appData.children).forEach(childId => {
+                        const child = appData.children[childId];
+                        if (!child.parentComments) child.parentComments = {};
+                        if (!child.tagesgruppeComments) child.tagesgruppeComments = {};
+                        if (child.comments) {
+                            child.parentComments = child.comments;
+                            delete child.comments;
+                        }
+                    });
                     updateLevelBadges();
                     renderChildData();
                     console.log('Data loaded from Firebase');
                 }
+            }).catch((error) => {
+                console.error('Firebase load error:', error);
             });
 
             // Set up real-time sync
-            database.ref('behaviorTracker').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    appData = data;
+            window.firebaseOnValue(dbRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    appData = snapshot.val();
                     updateLevelBadges();
                     renderChildData();
                 }
