@@ -1019,8 +1019,29 @@
 
         function renderBehaviors() {
             const child = appData.children[currentChild];
-            const positiveBehaviors = [...defaultBehaviors.positive[currentLanguage], ...appData.customBehaviors.positive[currentLanguage]];
-            const negativeBehaviors = [...defaultBehaviors.negative[currentLanguage], ...appData.customBehaviors.negative[currentLanguage]];
+            
+            // Ensure customBehaviors structure exists
+            if (!appData.customBehaviors) {
+                appData.customBehaviors = {
+                    positive: { en: [], de: [] },
+                    negative: { en: [], de: [] }
+                };
+            }
+            if (!appData.customBehaviors.positive) {
+                appData.customBehaviors.positive = { en: [], de: [] };
+            }
+            if (!appData.customBehaviors.negative) {
+                appData.customBehaviors.negative = { en: [], de: [] };
+            }
+            
+            // Get behaviors in current language
+            const defaultPositive = defaultBehaviors.positive[currentLanguage] || [];
+            const customPositive = appData.customBehaviors.positive[currentLanguage] || [];
+            const positiveBehaviors = [...defaultPositive, ...customPositive];
+            
+            const defaultNegative = defaultBehaviors.negative[currentLanguage] || [];
+            const customNegative = appData.customBehaviors.negative[currentLanguage] || [];
+            const negativeBehaviors = [...defaultNegative, ...customNegative];
 
             // Sort by frequency - store behaviors in English, display in current language
             const sortedPositive = positiveBehaviors.sort((a, b) => {
@@ -1043,29 +1064,87 @@
             // Render positive behaviors
             const positiveContainer = document.getElementById('positiveBehaviors');
             positiveContainer.innerHTML = '';
-            sortedPositive.forEach(behavior => {
+            sortedPositive.forEach((behavior, index) => {
                 // Store in English but display in current language
                 const enBehavior = currentLanguage === 'de' ? getTranslatedBehavior(behavior, 'en') : behavior;
                 const frequency = child.behaviors[enBehavior] || 0;
+                const isCustom = index >= defaultPositive.length;
+                
                 const div = document.createElement('div');
                 div.className = 'behavior-item positive-item';
-                div.innerHTML = `${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}`;
-                div.addEventListener('click', () => logBehavior(enBehavior, 'positive'));
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.style.alignItems = 'center';
+                div.style.gap = '10px';
+                
+                const textSpan = document.createElement('span');
+                textSpan.innerHTML = `${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}`;
+                textSpan.style.flex = '1';
+                textSpan.style.cursor = 'pointer';
+                textSpan.addEventListener('click', () => logBehavior(enBehavior, 'positive'));
+                
+                div.appendChild(textSpan);
+                
+                // Add delete button for custom behaviors
+                if (isCustom) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.style.fontSize = '18px';
+                    deleteBtn.style.padding = '2px 8px';
+                    deleteBtn.title = 'Delete this behavior permanently';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteCustomBehavior('positive', behavior);
+                    });
+                    div.appendChild(deleteBtn);
+                }
+                
                 positiveContainer.appendChild(div);
             });
 
             // Render negative behaviors
             const negativeContainer = document.getElementById('negativeBehaviors');
             negativeContainer.innerHTML = '';
-            sortedNegative.forEach(behavior => {
+            sortedNegative.forEach((behavior, index) => {
                 const enBehavior = currentLanguage === 'de' ? getTranslatedBehavior(behavior, 'en') : behavior;
                 const frequency = child.behaviors[enBehavior] || 0;
+                const isCustom = index >= defaultNegative.length;
+                
                 const div = document.createElement('div');
                 div.className = 'behavior-item negative-item';
-                div.innerHTML = `${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}`;
-                div.addEventListener('click', () => logBehavior(enBehavior, 'negative'));
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.style.alignItems = 'center';
+                div.style.gap = '10px';
+                
+                const textSpan = document.createElement('span');
+                textSpan.innerHTML = `${behavior} ${frequency > 0 ? `<span class="frequency">${frequency}</span>` : ''}`;
+                textSpan.style.flex = '1';
+                textSpan.style.cursor = 'pointer';
+                textSpan.addEventListener('click', () => logBehavior(enBehavior, 'negative'));
+                
+                div.appendChild(textSpan);
+                
+                // Add delete button for custom behaviors
+                if (isCustom) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.style.fontSize = '18px';
+                    deleteBtn.style.padding = '2px 8px';
+                    deleteBtn.title = 'Delete this behavior permanently';
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteCustomBehavior('negative', behavior);
+                    });
+                    div.appendChild(deleteBtn);
+                }
+                
                 negativeContainer.appendChild(div);
             });
+            
+            console.log('Rendered', sortedPositive.length, 'positive and', sortedNegative.length, 'negative behaviors');
         }
 
         function logBehavior(behavior, type) {
@@ -1223,6 +1302,17 @@
             const behavior = input.value.trim();
 
             if (!behavior) return;
+            
+            // Ensure customBehaviors structure exists
+            if (!appData.customBehaviors) {
+                appData.customBehaviors = {
+                    positive: { en: [], de: [] },
+                    negative: { en: [], de: [] }
+                };
+            }
+            if (!appData.customBehaviors[type]) {
+                appData.customBehaviors[type] = { en: [], de: [] };
+            }
 
             // Add to both languages initially with same text
             appData.customBehaviors[type].en.push(behavior);
@@ -1231,6 +1321,27 @@
             input.value = '';
             saveData();
             renderBehaviors();
+            showSaveIndicator('✓ Behavior added');
+        }
+        
+        function deleteCustomBehavior(type, behavior) {
+            if (!confirm(`Delete "${behavior}" permanently from the list?`)) {
+                return;
+            }
+            
+            // Remove from current language
+            const index = appData.customBehaviors[type][currentLanguage].indexOf(behavior);
+            if (index > -1) {
+                appData.customBehaviors[type][currentLanguage].splice(index, 1);
+                
+                // Also remove from the other language at the same index
+                const otherLang = currentLanguage === 'en' ? 'de' : 'en';
+                appData.customBehaviors[type][otherLang].splice(index, 1);
+            }
+            
+            saveData();
+            renderBehaviors();
+            showSaveIndicator('✓ Behavior deleted');
         }
 
         function addReward() {
@@ -1424,19 +1535,37 @@
             const savedData = localStorage.getItem('behaviorTrackerData');
             if (savedData) {
                 try {
-                    appData = JSON.parse(savedData);
+                    const loaded = JSON.parse(savedData);
+                    
+                    // Merge loaded data with default structure
+                    appData.children = loaded.children || appData.children;
+                    
+                    // Ensure customBehaviors structure exists
+                    if (!loaded.customBehaviors) {
+                        loaded.customBehaviors = {
+                            positive: { en: [], de: [] },
+                            negative: { en: [], de: [] }
+                        };
+                    }
+                    appData.customBehaviors = loaded.customBehaviors;
+                    
                     // Migrate old data structure if needed
                     Object.keys(appData.children).forEach(childId => {
                         const child = appData.children[childId];
                         if (!child.parentComments) child.parentComments = {};
                         if (!child.tagesgruppeComments) child.tagesgruppeComments = {};
+                        if (!child.behaviors) child.behaviors = {};
+                        if (!child.logs) child.logs = {};
+                        if (!child.rewards) child.rewards = [];
                         // Migrate old comments to parentComments if they exist
                         if (child.comments) {
                             child.parentComments = child.comments;
                             delete child.comments;
                         }
                     });
+                    
                     updateLevelBadges();
+                    console.log('Data loaded from local storage');
                 } catch (e) {
                     console.error('Error loading saved data:', e);
                 }
@@ -1454,12 +1583,28 @@
             // Load initial data
             window.firebaseGet(dbRef).then((snapshot) => {
                 if (snapshot.exists()) {
-                    appData = snapshot.val();
+                    const loaded = snapshot.val();
+                    
+                    // Merge with default structure
+                    appData.children = loaded.children || appData.children;
+                    
+                    // Ensure customBehaviors exists
+                    if (!loaded.customBehaviors) {
+                        loaded.customBehaviors = {
+                            positive: { en: [], de: [] },
+                            negative: { en: [], de: [] }
+                        };
+                    }
+                    appData.customBehaviors = loaded.customBehaviors;
+                    
                     // Migrate old data structure if needed
                     Object.keys(appData.children).forEach(childId => {
                         const child = appData.children[childId];
                         if (!child.parentComments) child.parentComments = {};
                         if (!child.tagesgruppeComments) child.tagesgruppeComments = {};
+                        if (!child.behaviors) child.behaviors = {};
+                        if (!child.logs) child.logs = {};
+                        if (!child.rewards) child.rewards = [];
                         if (child.comments) {
                             child.parentComments = child.comments;
                             delete child.comments;
@@ -1476,7 +1621,17 @@
             // Set up real-time sync
             window.firebaseOnValue(dbRef, (snapshot) => {
                 if (snapshot.exists()) {
-                    appData = snapshot.val();
+                    const loaded = snapshot.val();
+                    
+                    appData.children = loaded.children || appData.children;
+                    if (!loaded.customBehaviors) {
+                        loaded.customBehaviors = {
+                            positive: { en: [], de: [] },
+                            negative: { en: [], de: [] }
+                        };
+                    }
+                    appData.customBehaviors = loaded.customBehaviors;
+                    
                     updateLevelBadges();
                     renderChildData();
                 }
