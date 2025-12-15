@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>König Davids Leben - Zeitstrahl-Spiel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: 'Comic Sans MS', 'Chalkboard SE', 'Arial Rounded MT Bold', cursive, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: #333;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 25px;
+        padding: 30px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+        text-align: center;
+        color: #764ba2;
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #667eea;
+        font-size: 1.2em;
+        margin-bottom: 30px;
+    }
+
+    .instructions {
+        background: #fff3cd;
+        border: 3px solid #ffc107;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        font-size: 1.1em;
+        line-height: 1.6;
+    }
+
+    .instructions strong {
+        color: #d63031;
+        font-size: 1.2em;
+    }
+
+    .game-area {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .game-area {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .events-box {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        border: 3px solid #667eea;
+    }
+
+    .events-box h2 {
+        color: #667eea;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+        text-align: center;
+    }
+
+    .event-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        min-height: 400px;
+    }
+
+    .event-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        cursor: move;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        font-size: 1.1em;
+        line-height: 1.5;
+    }
+
+    .event-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    }
+
+    .event-card.dragging {
+        opacity: 0.5;
+        cursor: grabbing;
+    }
+
+    .timeline-box {
+        background: #e8f5e9;
+        border-radius: 15px;
+        padding: 20px;
+        border: 3px solid #4caf50;
+    }
+
+    .timeline-box h2 {
+        color: #4caf50;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+        text-align: center;
+    }
+
+    .timeline-slots {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        min-height: 400px;
+    }
+
+    .timeline-slot {
+        background: white;
+        border: 3px dashed #4caf50;
+        border-radius: 12px;
+        padding: 20px;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .timeline-slot::before {
+        content: attr(data-number);
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        background: #4caf50;
+        color: white;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+    }
+
+    .timeline-slot.drag-over {
+        background: #c8e6c9;
+        border-color: #2e7d32;
+        transform: scale(1.02);
+    }
+
+    .timeline-slot .event-card {
+        width: 100%;
+        margin: 0;
+    }
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+
+    button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.2em;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        font-weight: bold;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+
+    button:active {
+        transform: translateY(0);
+    }
+
+    .reset-btn {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .score-display {
+        text-align: center;
+        font-size: 1.5em;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #fff3cd;
+        border-radius: 15px;
+        border: 3px solid #ffc107;
+    }
+
+    .score-display .stars {
+        font-size: 2em;
+        margin-top: 10px;
+    }
+
+    .result-message {
+        text-align: center;
+        font-size: 1.8em;
+        font-weight: bold;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        display: none;
+    }
+
+    .result-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 3px solid #28a745;
+        display: block;
+        animation: celebrate 0.5s ease;
+    }
+
+    .result-message.partial {
+        background: #fff3cd;
+        color: #856404;
+        border: 3px solid #ffc107;
+        display: block;
+    }
+
+    .result-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 3px solid #dc3545;
+        display: block;
+    }
+
+    @keyframes celebrate {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .explanation {
+        background: #e3f2fd;
+        border: 3px solid #2196f3;
+        border-radius: 15px;
+        padding: 20px;
+        margin-top: 20px;
+        display: none;
+    }
+
+    .explanation h3 {
+        color: #1976d2;
+        margin-bottom: 15px;
+    }
+
+    .explanation ol {
+        margin-left: 20px;
+        line-height: 2;
+        font-size: 1.1em;
+    }
+
+    .explanation li {
+        margin-bottom: 10px;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+    }
+
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: #f0f;
+        position: absolute;
+        animation: confetti-fall 3s linear;
+    }
+
+    @keyframes confetti-fall {
+        to {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <h1>👑 König Davids Leben 👑</h1>
+        <div class="subtitle">Ordne die Ereignisse in der richtigen Reihenfolge!</div>
+
+```
+    <div class="instructions">
+        <strong>📖 Anleitung:</strong> Ziehe die Ereignisse aus König Davids Leben in die richtige Reihenfolge auf den Zeitstrahl. Beginne mit seiner Kindheit als Hirte und ende mit seinem Tod. Wenn du fertig bist, klicke auf "Überprüfen"!
+    </div>
+
+    <div class="score-display" id="scoreDisplay" style="display: none;">
+        <div>Deine Punktzahl: <span id="score">0</span> von 8</div>
+        <div class="stars" id="stars"></div>
+    </div>
+
+    <div class="result-message" id="resultMessage"></div>
+
+    <div class="game-area">
+        <div class="events-box">
+            <h2>📚 Ereignisse</h2>
+            <div class="event-cards" id="eventCards">
+                <!-- Events will be shuffled and added here by JavaScript -->
+            </div>
+        </div>
+
+        <div class="timeline-box">
+            <h2>📅 Zeitstrahl</h2>
+            <div class="timeline-slots" id="timelineSlots">
+                <div class="timeline-slot" data-number="1" data-position="1"></div>
+                <div class="timeline-slot" data-number="2" data-position="2"></div>
+                <div class="timeline-slot" data-number="3" data-position="3"></div>
+                <div class="timeline-slot" data-number="4" data-position="4"></div>
+                <div class="timeline-slot" data-number="5" data-position="5"></div>
+                <div class="timeline-slot" data-number="6" data-position="6"></div>
+                <div class="timeline-slot" data-number="7" data-position="7"></div>
+                <div class="timeline-slot" data-number="8" data-position="8"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="checkAnswer()">✓ Überprüfen</button>
+        <button class="reset-btn" onclick="resetGame()">↻ Neu starten</button>
+    </div>
+
+    <div class="explanation" id="explanation">
+        <h3>📖 Die richtige Reihenfolge:</h3>
+        <ol>
+            <li><strong>David hütet die Schafe:</strong> Als junger Junge war David ein Hirte in Bethlehem.</li>
+            <li><strong>Samuel salbt David:</strong> Der Prophet Samuel wählte David aus, um der nächste König zu werden.</li>
+            <li><strong>David besiegt Goliath:</strong> Mit einer Steinschleuder besiegte David den Riesen Goliath.</li>
+            <li><strong>David wird Sauls Harfenspieler:</strong> Er spielte Harfe für König Saul und beruhigte ihn.</li>
+            <li><strong>David flieht vor Saul:</strong> Saul wurde eifersüchtig und David musste fliehen.</li>
+            <li><strong>David wird König von Israel:</strong> Nach Sauls Tod wurde David König über ganz Israel.</li>
+            <li><strong>David bringt die Bundeslade nach Jerusalem:</strong> Er machte Jerusalem zur heiligen Stadt.</li>
+            <li><strong>David stirbt:</strong> Nach vielen Jahren als König starb David, und sein Sohn Salomo wurde König.</li>
+        </ol>
+    </div>
+</div>
+
+<script>
+    const events = [
+        { id: 1, text: "🐑 David hütet die Schafe seines Vaters in Bethlehem", order: 1 },
+        { id: 2, text: "✨ Der Prophet Samuel salbt David zum zukünftigen König", order: 2 },
+        { id: 3, text: "🪨 David besiegt den Riesen Goliath mit einer Steinschleuder", order: 3 },
+        { id: 4, text: "🎵 David spielt Harfe für König Saul im Palast", order: 4 },
+        { id: 5, text: "🏃 David muss vor König Saul fliehen und versteckt sich", order: 5 },
+        { id: 6, text: "👑 David wird König von ganz Israel und Juda", order: 6 },
+        { id: 7, text: "📦 David bringt die Bundeslade nach Jerusalem", order: 7 },
+        { id: 8, text: "💫 David stirbt und sein Sohn Salomo wird König", order: 8 }
+    ];
+
+    let draggedElement = null;
+    let attempts = 0;
+
+    function shuffleArray(array) {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    }
+
+    function initGame() {
+        const eventCards = document.getElementById('eventCards');
+        eventCards.innerHTML = '';
+        
+        const shuffledEvents = shuffleArray(events);
+        
+        shuffledEvents.forEach(event => {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            card.draggable = true;
+            card.dataset.order = event.order;
+            card.dataset.id = event.id;
+            card.textContent = event.text;
+            
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            
+            eventCards.appendChild(card);
+        });
+
+        const slots = document.querySelectorAll('.timeline-slot');
+        slots.forEach(slot => {
+            slot.addEventListener('dragover', handleDragOver);
+            slot.addEventListener('drop', handleDrop);
+            slot.addEventListener('dragleave', handleDragLeave);
+        });
+
+        document.getElementById('resultMessage').style.display = 'none';
+        document.getElementById('scoreDisplay').style.display = 'none';
+        document.getElementById('explanation').style.display = 'none';
+    }
+
+    function handleDragStart(e) {
+        draggedElement = e.target;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', e.target.innerHTML);
+    }
+
+    function handleDragEnd(e) {
+        e.target.classList.remove('dragging');
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        
+        if (!e.currentTarget.classList.contains('drag-over')) {
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        return false;
+    }
+
+    function handleDragLeave(e) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
+        }
+        
+        e.currentTarget.classList.remove('drag-over');
+        
+        if (draggedElement) {
+            // If slot already has a card, swap them
+            const existingCard = e.currentTarget.querySelector('.event-card');
+            
+            if (existingCard) {
+                // Swap: put existing card back to events or swap positions
+                const eventsBox = document.getElementById('eventCards');
+                const draggedParent = draggedElement.parentNode;
+                
+                if (draggedParent.classList.contains('timeline-slot')) {
+                    // Both are in timeline slots, swap them
+                    draggedParent.appendChild(existingCard);
+                } else {
+                    // Dragged from events box, put existing back
+                    eventsBox.appendChild(existingCard);
+                }
+            }
+            
+            // Remove from current location and add to new slot
+            e.currentTarget.appendChild(draggedElement);
+        }
+        
+        return false;
+    }
+
+    function checkAnswer() {
+        attempts++;
+        const slots = document.querySelectorAll('.timeline-slot');
+        let correctCount = 0;
+        let totalSlots = 0;
+
+        slots.forEach((slot, index) => {
+            const card = slot.querySelector('.event-card');
+            if (card) {
+                totalSlots++;
+                const cardOrder = parseInt(card.dataset.order);
+                const slotPosition = index + 1;
+                
+                if (cardOrder === slotPosition) {
+                    correctCount++;
+                }
+            }
+        });
+
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const scoreElement = document.getElementById('score');
+        const starsElement = document.getElementById('stars');
+        const resultMessage = document.getElementById('resultMessage');
+        const explanation = document.getElementById('explanation');
+
+        scoreDisplay.style.display = 'block';
+        scoreElement.textContent = correctCount;
+
+        // Generate stars
+        let stars = '';
+        const starCount = Math.floor((correctCount / 8) * 5);
+        for (let i = 0; i < 5; i++) {
+            stars += i < starCount ? '⭐' : '☆';
+        }
+        starsElement.textContent = stars;
+
+        resultMessage.className = 'result-message';
+        
+        if (correctCount === 8) {
+            resultMessage.className += ' success';
+            resultMessage.innerHTML = '🎉 Perfekt! Du kennst König Davids Leben sehr gut! 🎉';
+            createConfetti();
+            explanation.style.display = 'block';
+        } else if (correctCount >= 5) {
+            resultMessage.className += ' partial';
+            resultMessage.innerHTML = `👍 Gut gemacht! ${correctCount} von 8 sind richtig. Versuch es nochmal!`;
+        } else {
+            resultMessage.className += ' error';
+            resultMessage.innerHTML = `💪 Weiter üben! ${correctCount} von 8 sind richtig. Du schaffst das!`;
+        }
+
+        // Show explanation after first attempt
+        if (attempts >= 2 || correctCount === 8) {
+            explanation.style.display = 'block';
+        }
+    }
+
+    function resetGame() {
+        attempts = 0;
+        initGame();
+    }
+
+    function createConfetti() {
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+        const container = document.querySelector('.container');
+        
+        for (let i = 0; i < 50; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                container.appendChild(confetti);
+                
+                setTimeout(() => confetti.remove(), 3000);
+            }, i * 30);
+        }
+    }
+
+    // Initialize game on load
+    initGame();
+</script>
+```
+
+</body>
+</html>
